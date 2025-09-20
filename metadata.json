@@ -1,0 +1,5 @@
+{
+  "name": "AI Music Generator",
+  "description": "Generate unique, short music tracks from a text prompt and an optional image to influence the mood and style. Users can listen to, loop, and download the generated audio.",
+  "requestFramePermissions": []
+}
