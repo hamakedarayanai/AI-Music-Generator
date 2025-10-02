@@ -6,7 +6,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AI Music Generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
-  <script type="importmap">
+    <style>
+      body {
+        background-color: #0f172a;
+        background-image: radial-gradient(circle at top, rgba(168, 85, 247, 0.1), transparent 40%),
+                          radial-gradient(circle at bottom right, rgba(236, 72, 153, 0.1), transparent 50%);
+        background-attachment: fixed;
+      }
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-fadeInUp {
+        animation: fadeInUp 0.6s ease-out forwards;
+      }
+      .form-input-bg {
+        background-color: rgba(30, 41, 59, 0.5);
+      }
+      .card-bg {
+        background-color: rgba(30, 41, 59, 0.5);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+      }
+    </style>
+    <script type="importmap">
 {
   "imports": {
     "react/": "https://aistudiocdn.com/react@^19.1.1/",
@@ -17,7 +46,7 @@
 }
 </script>
 </head>
-  <body class="bg-slate-900">
+  <body class="text-white font-sans antialiased">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

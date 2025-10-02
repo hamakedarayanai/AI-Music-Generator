@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback, useRef } from 'react';
 import type { ImageFile } from '../types';
-import { ImageIcon, SparklesIcon, XIcon } from './Icons';
+import { ImageIcon, SparklesIcon, XIcon, UploadIcon } from './Icons';
 
 interface PromptInputProps {
   onGenerate: (prompt: string, image: ImageFile | null) => void;
@@ -48,23 +48,26 @@ export const PromptInput: React.FC<PromptInputProps> = ({ onGenerate, isLoading 
     event.preventDefault();
     onGenerate(prompt, image);
   }, [prompt, image, onGenerate]);
+  
+  const triggerFileSelect = () => fileInputRef.current?.click();
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="relative">
+      <div className="space-y-4">
+        <label htmlFor="prompt-input" className="font-medium text-slate-300">Describe your music</label>
         <textarea
+          id="prompt-input"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="e.g., Upbeat electronic music for a workout video..."
-          className="w-full h-32 p-4 pr-12 bg-slate-700/50 border border-slate-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:outline-none resize-none transition-colors"
+          className="w-full h-28 p-4 bg-slate-700/50 border border-slate-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:outline-none resize-none transition-colors"
           disabled={isLoading}
         />
-        <label
-          htmlFor="image-upload"
-          className="absolute right-4 top-4 text-slate-400 hover:text-purple-400 cursor-pointer transition-colors"
-        >
-          <ImageIcon className="w-6 h-6" />
-          <input
+      </div>
+
+      <div className="space-y-4">
+        <label className="font-medium text-slate-300">Add an image (optional)</label>
+         <input
             id="image-upload"
             type="file"
             accept="image/*"
@@ -73,28 +76,37 @@ export const PromptInput: React.FC<PromptInputProps> = ({ onGenerate, isLoading 
             ref={fileInputRef}
             disabled={isLoading}
           />
-        </label>
-      </div>
-
-      {imagePreview && (
-        <div className="relative w-32 h-32 rounded-lg overflow-hidden group">
-            <img src={imagePreview} alt="Prompt inspiration" className="w-full h-full object-cover" />
-            <button
+        {imagePreview ? (
+            <div className="relative w-36 h-36 rounded-lg overflow-hidden group">
+                <img src={imagePreview} alt="Prompt inspiration" className="w-full h-full object-cover" />
+                <button
+                    type="button"
+                    onClick={removeImage}
+                    className="absolute top-1.5 right-1.5 bg-black/60 rounded-full p-1 text-white opacity-0 group-hover:opacity-100 transition-opacity focus:outline-none focus:ring-2 focus:ring-white"
+                    aria-label="Remove image"
+                    disabled={isLoading}
+                >
+                    <XIcon className="w-4 h-4" />
+                </button>
+            </div>
+        ) : (
+             <button
                 type="button"
-                onClick={removeImage}
-                className="absolute top-1 right-1 bg-black/50 rounded-full p-1 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                aria-label="Remove image"
+                onClick={triggerFileSelect}
                 disabled={isLoading}
+                className="w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-600 hover:border-purple-500 rounded-xl transition-colors cursor-pointer"
             >
-                <XIcon className="w-4 h-4" />
+                <UploadIcon className="w-8 h-8 text-slate-400 mb-2" />
+                <span className="text-slate-400 font-semibold">Click to upload an image</span>
+                <span className="text-slate-500 text-sm mt-1">PNG, JPG, GIF up to 4MB</span>
             </button>
-        </div>
-      )}
+        )}
+      </div>
 
       <button
         type="submit"
         disabled={isLoading || !prompt}
-        className="w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 transform active:scale-95"
+        className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-slate-600 disabled:to-slate-700 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 transform active:scale-95 shadow-lg hover:shadow-purple-500/30"
       >
         <SparklesIcon className="w-5 h-5" />
         {isLoading ? 'Generating...' : 'Generate Music'}

@@ -1,7 +1,7 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type { GeneratedMusic } from '../types';
-import { PlayIcon, PauseIcon, DownloadIcon } from './Icons';
+import { PlayIcon, PauseIcon, DownloadIcon, LoopIcon } from './Icons';
 
 interface MusicPlayerProps {
   music: GeneratedMusic;
@@ -9,82 +9,152 @@ interface MusicPlayerProps {
 
 const placeholderAudioUrl = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
 
+const formatTime = (time: number) => {
+  if (isNaN(time)) return '0:00';
+  const minutes = Math.floor(time / 60);
+  const seconds = Math.floor(time % 60);
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+};
+
 export const MusicPlayer: React.FC<MusicPlayerProps> = ({ music }) => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isLooping, setIsLooping] = useState(true);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const progressRef = useRef<HTMLInputElement>(null);
 
-  const togglePlayPause = () => {
+  const togglePlayPause = useCallback(() => {
     if (audioRef.current) {
       if (isPlaying) {
         audioRef.current.pause();
       } else {
-        audioRef.current.play();
+        audioRef.current.play().catch(e => console.error("Playback failed:", e));
       }
       setIsPlaying(!isPlaying);
+    }
+  }, [isPlaying]);
+
+  const toggleLoop = () => {
+    setIsLooping(!isLooping);
+    if (audioRef.current) {
+      audioRef.current.loop = !isLooping;
+    }
+  };
+
+  const handleProgressChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = Number(event.target.value);
+      setCurrentTime(Number(event.target.value));
     }
   };
   
   useEffect(() => {
     const audio = audioRef.current;
-    const handleEnded = () => setIsPlaying(false);
+    if (!audio) return;
 
-    if (audio) {
-      audio.addEventListener('ended', handleEnded);
-    }
+    const setAudioData = () => {
+      setDuration(audio.duration);
+      setCurrentTime(audio.currentTime);
+    };
+
+    const setAudioTime = () => setCurrentTime(audio.currentTime);
+
+    audio.addEventListener('loadeddata', setAudioData);
+    audio.addEventListener('timeupdate', setAudioTime);
+    audio.addEventListener('ended', () => {
+        if (!audio.loop) {
+            setIsPlaying(false);
+        }
+    });
 
     return () => {
-      if (audio) {
-        audio.removeEventListener('ended', handleEnded);
-      }
+      audio.removeEventListener('loadeddata', setAudioData);
+      audio.removeEventListener('timeupdate', setAudioTime);
     };
   }, []);
+  
+  useEffect(() => {
+    if (progressRef.current) {
+        const progress = (currentTime / duration) * 100;
+        progressRef.current.style.background = `linear-gradient(to right, #a855f7 ${progress}%, #475569 ${progress}%)`;
+    }
+  }, [currentTime, duration]);
 
   return (
-    <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row items-start gap-6">
-        <div className="flex-shrink-0">
-          <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center shadow-lg">
-             <button
+    <div className="card-bg border border-slate-700 rounded-2xl p-6 shadow-2xl">
+      <div className="flex flex-col items-center text-center">
+        <div className="relative mb-6">
+            <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-500 ${isPlaying ? 'opacity-100' : 'opacity-0'}`}>
+                {[...Array(3)].map((_, i) => (
+                    <div key={i} className={`absolute w-40 h-40 bg-purple-500/10 rounded-full animate-ping`} style={{animationDelay: `${i * 0.4}s`, animationDuration: '2s'}}></div>
+                ))}
+            </div>
+            <button
                 onClick={togglePlayPause}
-                className="bg-black/20 rounded-full p-4 text-white hover:bg-black/40 transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-white"
+                className="relative bg-black/20 rounded-full w-24 h-24 flex items-center justify-center text-white hover:bg-black/40 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white/50"
                 aria-label={isPlaying ? 'Pause' : 'Play'}
-              >
-                {isPlaying ? <PauseIcon className="w-8 h-8" /> : <PlayIcon className="w-8 h-8" />}
+            >
+                {isPlaying ? <PauseIcon className="w-10 h-10" /> : <PlayIcon className="w-10 h-10 pl-1" />}
             </button>
-          </div>
         </div>
-        <div className="flex-grow">
-          <h2 className="text-2xl font-bold text-white">{music.genre}</h2>
-          <p className="text-slate-300 mt-1">{music.mood}</p>
-          <p className="text-slate-400 mt-4 text-sm">{music.description}</p>
-          
-          <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
-            <div className="bg-slate-700/50 p-3 rounded-lg">
-                <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Tempo</p>
-                <p className="text-white font-bold">{music.tempo} BPM</p>
-            </div>
-             <div className="bg-slate-700/50 p-3 rounded-lg">
-                <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Key</p>
-                <p className="text-white font-bold">{music.key}</p>
-            </div>
-             <div className="bg-slate-700/50 p-3 rounded-lg col-span-2 sm:col-span-1">
-                <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Instruments</p>
-                <p className="text-white font-bold truncate">{music.instruments.join(', ')}</p>
-            </div>
-          </div>
+
+        <h2 className="text-3xl font-bold text-white">{music.genre}</h2>
+        <p className="text-slate-300 mt-1 text-lg">{music.mood}</p>
+        <p className="text-slate-400 mt-4 max-w-prose">{music.description}</p>
+      </div>
+        
+      <div className="mt-8 space-y-4">
+        <div className="flex items-center gap-3 text-sm">
+            <span className="text-slate-400">{formatTime(currentTime)}</span>
+            <input
+                ref={progressRef}
+                type="range"
+                value={currentTime}
+                step="any"
+                max={duration || 0}
+                onChange={handleProgressChange}
+                className="w-full h-2 rounded-lg appearance-none cursor-pointer range-lg bg-slate-700"
+                aria-label="Music progress"
+            />
+            <span className="text-slate-400">{formatTime(duration)}</span>
         </div>
-        <div className="w-full sm:w-auto flex-shrink-0">
-           <a
+        <div className="flex justify-center items-center gap-6">
+            <button
+                onClick={toggleLoop}
+                className={`p-2 rounded-full transition-colors ${isLooping ? 'text-purple-400 bg-purple-500/10' : 'text-slate-400 hover:bg-slate-700'}`}
+                aria-label={isLooping ? 'Disable loop' : 'Enable loop'}
+            >
+                <LoopIcon className="w-6 h-6" />
+            </button>
+            <a
                 href={placeholderAudioUrl}
                 download="ai-generated-music.mp3"
-                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold py-2 px-4 rounded-lg transition-colors"
+                className="flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold py-2 px-4 rounded-lg transition-colors"
                 >
                 <DownloadIcon className="w-5 h-5" />
                 Download
             </a>
         </div>
       </div>
-      <audio ref={audioRef} src={placeholderAudioUrl} loop />
+
+      <div className="mt-8 pt-6 border-t border-slate-700">
+         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm text-center">
+            <div className="bg-slate-700/50 p-3 rounded-lg">
+                <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Tempo</p>
+                <p className="text-white font-bold mt-1">{music.tempo} BPM</p>
+            </div>
+             <div className="bg-slate-700/50 p-3 rounded-lg">
+                <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Key</p>
+                <p className="text-white font-bold mt-1">{music.key}</p>
+            </div>
+             <div className="bg-slate-700/50 p-3 rounded-lg col-span-2 sm:col-span-1">
+                <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Instruments</p>
+                <p className="text-white font-bold mt-1 truncate">{music.instruments.join(', ')}</p>
+            </div>
+          </div>
+      </div>
+      <audio ref={audioRef} src={placeholderAudioUrl} loop={isLooping} preload="metadata" />
     </div>
   );
 };
